@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import pathlib
 import subprocess
 from string import Template
 
@@ -131,6 +132,41 @@ launch += ' -port={} -name="{}" -profiles="/arma3/configs/profiles"'.format(
 
 if os.path.exists("servermods"):
     launch += mod_param("serverMod", local.mods("servermods"))
+
+def fix_mod_paths(root="/arma3/steamapps/workshop/content/107410"):
+    print("Fixing mod paths for Linux compatibility...")
+    for path in pathlib.Path(root).rglob("*"):
+        try:
+            # Fix casing: rename to lowercase
+            new_path = path.parent / path.name.lower()
+            if path != new_path:
+                path.rename(new_path)
+        except Exception as e:
+            print(f"Failed to rename {path}: {e}")
+
+    # Fix slashes in mod.cpp and similar
+    for file_path in pathlib.Path(root).rglob("*.cpp"):
+        try:
+            with file_path.open("r+", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+                content = content.replace("\\", "/")
+                f.seek(0)
+                f.write(content)
+                f.truncate()
+        except Exception as e:
+            print(f"Failed to fix slashes in {file_path}: {e}")
+    for file_path in pathlib.Path(root).rglob("*.hpp"):
+        try:
+            with file_path.open("r+", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+                content = content.replace("\\", "/")
+                f.seek(0)
+                f.write(content)
+                f.truncate()
+        except Exception as e:
+            print(f"Failed to fix slashes in {file_path}: {e}")
+
+fix_mod_paths()
 
 print("LAUNCHING ARMA SERVER WITH", launch, flush=True)
 os.system(launch)
